@@ -1,0 +1,726 @@
+{
+  "keys": {
+    "id": "loadnumber",
+    "time": "loaddate",
+    "date": "date"
+  },
+  "n_cols": 179,
+  "columns": [
+    {
+      "name": "loadnumber",
+      "dtype": "Int32"
+    },
+    {
+      "name": "origin_zone_group",
+      "dtype": "String"
+    },
+    {
+      "name": "dest_zone_group",
+      "dtype": "String"
+    },
+    {
+      "name": "origin_zone",
+      "dtype": "String"
+    },
+    {
+      "name": "dest_zone",
+      "dtype": "String"
+    },
+    {
+      "name": "origin_market_name",
+      "dtype": "String"
+    },
+    {
+      "name": "dest_market_name",
+      "dtype": "String"
+    },
+    {
+      "name": "origin_state",
+      "dtype": "String"
+    },
+    {
+      "name": "dest_state",
+      "dtype": "String"
+    },
+    {
+      "name": "origin_city",
+      "dtype": "String"
+    },
+    {
+      "name": "dest_city",
+      "dtype": "String"
+    },
+    {
+      "name": "origin_city_id",
+      "dtype": "Int32"
+    },
+    {
+      "name": "dest_city_id",
+      "dtype": "Int32"
+    },
+    {
+      "name": "origin_zip_five",
+      "dtype": "String"
+    },
+    {
+      "name": "dest_zip_five",
+      "dtype": "String"
+    },
+    {
+      "name": "market_lane",
+      "dtype": "String"
+    },
+    {
+      "name": "loadmiles",
+      "dtype": "Int16"
+    },
+    {
+      "name": "booking_type",
+      "dtype": "String"
+    },
+    {
+      "name": "load_type",
+      "dtype": "String"
+    },
+    {
+      "name": "load_class",
+      "dtype": "String"
+    },
+    {
+      "name": "load_class_bucket",
+      "dtype": "String"
+    },
+    {
+      "name": "weight",
+      "dtype": "Float64"
+    },
+    {
+      "name": "is_flamed",
+      "dtype": "Int8"
+    },
+    {
+      "name": "is_high_risk",
+      "dtype": "Int8"
+    },
+    {
+      "name": "is_high_value",
+      "dtype": "Int8"
+    },
+    {
+      "name": "customer_id",
+      "dtype": "Int32"
+    },
+    {
+      "name": "customer_name",
+      "dtype": "String"
+    },
+    {
+      "name": "carrier_id",
+      "dtype": "Int32"
+    },
+    {
+      "name": "carrier_name",
+      "dtype": "String"
+    },
+    {
+      "name": "created_on_cst",
+      "dtype": "String"
+    },
+    {
+      "name": "available_on_first_cst",
+      "dtype": "String"
+    },
+    {
+      "name": "booked_on_cst",
+      "dtype": "String"
+    },
+    {
+      "name": "booked_on_date",
+      "dtype": "String"
+    },
+    {
+      "name": "loaddate",
+      "dtype": "String"
+    },
+    {
+      "name": "date",
+      "dtype": "String"
+    },
+    {
+      "name": "pickupapptearliest",
+      "dtype": "String"
+    },
+    {
+      "name": "pickup_appt_latest_local",
+      "dtype": "String"
+    },
+    {
+      "name": "available_to_cutoff",
+      "dtype": "Float64"
+    },
+    {
+      "name": "booked_to_cutoff",
+      "dtype": "Float64"
+    },
+    {
+      "name": "booking_velocity",
+      "dtype": "Float64"
+    },
+    {
+      "name": "customer_charges_total",
+      "dtype": "Float64"
+    },
+    {
+      "name": "carrier_charges_total",
+      "dtype": "Float64"
+    },
+    {
+      "name": "total_spread",
+      "dtype": "Float64"
+    },
+    {
+      "name": "customer_shipment_charges_total",
+      "dtype": "Float64"
+    },
+    {
+      "name": "carrier_shipment_charges_total",
+      "dtype": "Float64"
+    },
+    {
+      "name": "shipment_spread",
+      "dtype": "Float64"
+    },
+    {
+      "name": "market_rate",
+      "dtype": "Float64"
+    },
+    {
+      "name": "internal_market_rate",
+      "dtype": "Float64"
+    },
+    {
+      "name": "price_to_make",
+      "dtype": "Float64"
+    },
+    {
+      "name": "cost_vs_market",
+      "dtype": "Float64"
+    },
+    {
+      "name": "internal_cost_vs_market",
+      "dtype": "Float64"
+    },
+    {
+      "name": "is_bad_bounce",
+      "dtype": "Int8"
+    },
+    {
+      "name": "lightning_prediction",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_5",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_10",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_15",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_20",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_25",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_30",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_35",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_40",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_45",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_50",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_55",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_60",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_65",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_70",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_75",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_80",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_85",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_90",
+      "dtype": "Float64"
+    },
+    {
+      "name": "knn_95",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p05",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p10",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p15",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p20",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p25",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p30",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p35",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p40",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p45",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p50",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p55",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p60",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p65",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p70",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p75",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p80",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p85",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p90",
+      "dtype": "Float64"
+    },
+    {
+      "name": "p95",
+      "dtype": "Float64"
+    },
+    {
+      "name": "etp05_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "etp10_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "etp15_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "etp20_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "etp25_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "etp30_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "etp35_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "etp40_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "etp45_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "etp50_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "etp55_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "etp60_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "etp65_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "etp70_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "etp75_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "etp80_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "etp85_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "etp90_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "etp95_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "t1_setting",
+      "dtype": "Float64"
+    },
+    {
+      "name": "t2_setting",
+      "dtype": "Float64"
+    },
+    {
+      "name": "t3_setting",
+      "dtype": "Float64"
+    },
+    {
+      "name": "t4_setting",
+      "dtype": "Float64"
+    },
+    {
+      "name": "t1",
+      "dtype": "Float64"
+    },
+    {
+      "name": "t2",
+      "dtype": "Float64"
+    },
+    {
+      "name": "t3",
+      "dtype": "Float64"
+    },
+    {
+      "name": "t4",
+      "dtype": "Float64"
+    },
+    {
+      "name": "t1_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "t2_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "t3_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "t4_attainment",
+      "dtype": "Int8"
+    },
+    {
+      "name": "origin_lat",
+      "dtype": "Float64"
+    },
+    {
+      "name": "origin_lon",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dest_lat",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dest_lon",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_5",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_10",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_15",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_20",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_25",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_30",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_35",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_40",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_45",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_50",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_55",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_60",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_65",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_70",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_75",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_80",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_85",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_90",
+      "dtype": "Float64"
+    },
+    {
+      "name": "alt_95",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dat_linehaul_total",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dat_linehaul_total_lag1",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dat_linehaul_rate",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dat_linehaul_rate_lag1",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dat_linehaul_rate_percent_delta1",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dat_linehaul_total_delta1",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dat_linehaul_rate_percent_delta2",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dat_linehaul_total_delta2",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dat_linehaul_rate_percent_delta3",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dat_linehaul_total_delta3",
+      "dtype": "Float64"
+    },
+    {
+      "name": "orig_otri",
+      "dtype": "Float64"
+    },
+    {
+      "name": "orig_itri",
+      "dtype": "Float64"
+    },
+    {
+      "name": "orig_otvi",
+      "dtype": "Float64"
+    },
+    {
+      "name": "orig_itvi",
+      "dtype": "Float64"
+    },
+    {
+      "name": "orig_otri_percent_delta1",
+      "dtype": "Float64"
+    },
+    {
+      "name": "orig_otri_delta1",
+      "dtype": "Float64"
+    },
+    {
+      "name": "orig_otri_percent_delta2",
+      "dtype": "Float64"
+    },
+    {
+      "name": "orig_otri_delta2",
+      "dtype": "Float64"
+    },
+    {
+      "name": "orig_itvi_percent_delta1",
+      "dtype": "Float64"
+    },
+    {
+      "name": "orig_itvi_delta1",
+      "dtype": "Float64"
+    },
+    {
+      "name": "orig_otri_lag1",
+      "dtype": "Float64"
+    },
+    {
+      "name": "orig_itvi_lag1",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dest_otri",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dest_itri",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dest_otvi",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dest_itvi",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dest_otri_percent_delta1",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dest_otri_delta1",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dest_otri_percent_delta2",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dest_otri_delta2",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dest_itvi_percent_delta1",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dest_itvi_delta1",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dest_otri_lag1",
+      "dtype": "Float64"
+    },
+    {
+      "name": "dest_itvi_lag1",
+      "dtype": "Float64"
+    }
+  ]
+}

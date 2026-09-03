@@ -1,0 +1,21 @@
+[sqlfluff]
+dialect = snowflake
+templater = placeholder
+max_line_length = 120
+# Large production queries (e.g. features.sql) often exceed the default 20KB skip.
+large_file_skip_byte_limit = 0
+# First-pass gate: parse + basic safety. Expand rules after SQL is normalized.
+exclude_rules = LT01,LT03,LT04,LT05,LT06,LT07,LT08,LT09,LT10,LT11,LT12,LT13,LT14,ST01,ST02,ST03,ST04,ST05,ST06,ST07,ST08,ST09,AL01,AL02,AL03,AL04,AL05,AL06,AL07,AL08,AL09,AL10,AM01,AM02,AM03,AM04,AM05,AM06,RF01,RF02,RF03,RF04,RF05,RF06,CP01,CP02,CP03,CP04,CP05,CV01,CV02,CV03,CV04,CV05,CV06,CV07,CV08,CV09,CV10,CV11
+
+[sqlfluff:templater:placeholder]
+# Matches arriveds.snowflake.query_sf params= (Python str.format {name}).
+# Values are unquoted: SQL already wraps them as '{start_date}'.
+param_regex = {(?P<param_name>[\w_]+)}
+start_date = 2024-01-01
+end_date = 2024-12-31
+ship_date_start = 2025-01-01
+ship_date_end = 2026-12-31
+
+[sqlfluff:indentation]
+tab_space_size = 4
+indent_unit = space

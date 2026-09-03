@@ -1,0 +1,10 @@
+# Generated slider composites (bake via: uv run python -m dqt.etp_slider)
+SQL/etp-slider/etp-slider.sql
+SQL/etp-slider/etp-slider-shift.sql
+SQL/etp-slider/etp-slider-per-load.sql
+SQL/etp-slider/etp-slider-history.sql
+# Incomplete modular fragments (not valid standalone statements)
+SQL/etp-slider/etp-slider-cte.sql
+SQL/etp-slider/etp-slider-history-select.sql
+# Param placeholder in LIMIT is unparsable to sqlfluff
+SQL/etp-slider/etp-feature-keys-inventory.sql

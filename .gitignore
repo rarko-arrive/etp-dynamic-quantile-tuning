@@ -1,0 +1,14 @@
+.env
+.ai/
+data*/
+.ipynb_*
+.amlignore*
+*.amltmp
+**__pycache__**
+SQL/dev/
+notebooks/dqt/
+.venv
+.ai/
+Logs/
+*.DS_Store
+documentation/etp-slider/.dev/
