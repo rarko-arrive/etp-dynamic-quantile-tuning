@@ -14,7 +14,7 @@ from dqt.dial_miss.decomposition import (
     synthesize_hypotheses,
     verify_data_gates,
 )
-from dqt.etp_slider.paint.sarima_daily_paint import materialize_pp50_batch
+from dqt.sarima_dial import materialize_pp50_batch
 
 
 def test_dial_miss_pp_hand_check():

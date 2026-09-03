@@ -12,9 +12,13 @@ import numpy as np
 import polars as pl
 
 from dqt import parse_date_col, resolve_data_dir
-from dqt.etp_slider.paint.sarima_daily_paint import materialize_pp50_batch
 from dqt.panel import KNN_COLS
-from dqt.sarima_dial import QUOTE_CLIP_DEFAULT, dial_scorecard, rigid_quote_alts
+from dqt.sarima_dial import (
+    QUOTE_CLIP_DEFAULT,
+    dial_scorecard,
+    materialize_pp50_batch,
+    rigid_quote_alts,
+)
 from dqt.score.constants import COST_COL, DATE_COL, ID_COL
 
 DEFAULT_EXEC_DIR = "executive-2025-01-01_2026-08-28"

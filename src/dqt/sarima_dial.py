@@ -66,6 +66,22 @@ def rigid_quote_alts(
     return np.clip(levels_arr.reshape(1, -1) + delta_arr, clip[0], clip[1])
 
 
+def materialize_pp50_batch(
+    knn_mat: np.ndarray,
+    r_hat: np.ndarray,
+) -> np.ndarray:
+    """Vectorized rigid pp50 for many paint rows."""
+    qmat = np.sort(knn_mat.astype(np.float64), axis=1)
+    ok = (qmat[:, 0] >= 0) & np.isfinite(r_hat)
+    out = np.full(len(r_hat), np.nan, dtype=np.float64)
+    if not ok.any():
+        return out
+    delta = r_hat[ok] - 0.50
+    alts = rigid_quote_alts([0.50], delta, clip=QUOTE_CLIP_DEFAULT)[:, 0]
+    out[ok] = quantile_at(qmat[ok], alts, assume_sorted=True)
+    return out
+
+
 def shipped_alt_col(level: float, columns: set[str] | None = None) -> str:
     """Panel / ``dqt_alt_percentiles`` name: ``alt_5``, ``alt_50`` (not zero-padded)."""
     n = int(round(float(level) * 100))
