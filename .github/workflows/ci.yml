@@ -15,11 +15,15 @@ jobs:
         with:
           enable-cache: true
 
+      # secrets.* cannot appear in `if:` (workflow parse error). Key must be set
+      # in repo Settings → Secrets for uv to fetch arriveds from arrive-ds.
       - name: Load SSH key for private dependencies
-        if: ${{ secrets.ARRIVE_DS_DEPLOY_KEY != '' }}
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.ARRIVE_DS_DEPLOY_KEY }}
+
+      - name: Trust github.com host key
+        run: ssh-keyscan -t ed25519 github.com >> "${SSH_DIR:-$HOME/.ssh}/known_hosts"
 
       - name: Install dependencies
         run: uv sync --all-groups
