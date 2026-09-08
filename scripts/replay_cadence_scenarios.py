@@ -80,12 +80,16 @@ def _write_report(df: pl.DataFrame, out_dir: Path, *, stamp: date) -> tuple[Path
         "",
         "Counterfactual shadow replays (`SKIP_SF`, no shadow history append).",
         "",
-        "| scenario | scored | target | signal_age_d | n_loads | shipped_att50 | "
-        "tail_att50 | tail−ship pp | full alt_50 | capped alt_50 | cap−full pp | "
-        "alt50_move pp |",
-        "|----------|--------|--------|--------------|---------|---------------|"
-        "-----------|--------------|-------------|---------------|-------------|"
-        "--------------|",
+        (
+            "| scenario | scored | target | signal_age_d | n_loads | shipped_att50 | "
+            "tail_att50 | tail−ship pp | full alt_50 | capped alt_50 | cap−full pp | "
+            "alt50_move pp |"
+        ),
+        (
+            "|----------|--------|--------|--------------|---------|---------------|"
+            "-----------|--------------|-------------|---------------|-------------|"
+            "--------------|"
+        ),
     ]
     for row in df.iter_rows(named=True):
         if row.get("error"):
@@ -175,7 +179,7 @@ def main() -> int:
                 append_history=False,
             )
             rows.append(_report_row(sc.scenario_id, report))
-        except Exception as exc:
+        except (OSError, ValueError, RuntimeError) as exc:
             logger.warning("scenario {} failed: {}", sc.scenario_id, exc)
             rows.append(
                 {

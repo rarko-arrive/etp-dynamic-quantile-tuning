@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Run consecutive capped shadow days for bake-off history (no Snowflake).
 
 Usage:
@@ -10,7 +9,6 @@ from __future__ import annotations
 import argparse
 import sys
 from datetime import date, timedelta
-from pathlib import Path
 
 from loguru import logger
 
@@ -34,7 +32,7 @@ def main() -> int:
         write_smoke_layer(layer)
 
     shadow = ShadowDQT(layer)
-    scored = base_scored = date(2025, 6, 6)
+    scored = date(2025, 6, 6)
     while scored.weekday() >= 5:
         scored += timedelta(days=1)
     ok = 0
@@ -51,7 +49,7 @@ def main() -> int:
                 dual_write_audit=True,
             )
             ok += 1
-        except Exception as exc:
+        except (OSError, ValueError, RuntimeError) as exc:
             logger.warning("day {} scored={} failed: {}", i + 1, scored, exc)
         scored += timedelta(days=1)
         while scored.weekday() >= 5:
