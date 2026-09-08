@@ -24,7 +24,7 @@ export START_DATE
 SMOKE_START := $(shell python3 -c "from datetime import date, timedelta; print((date.today() - timedelta(days=14)).isoformat())")
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint lint-sql test features hybrid sarima-wf sarima-publish shadow-dqt guardrails-assess smoke smoke-pipeline shadow-alerts shadow-bakeoff schedule-daily schedule-weekly
+.PHONY: help install lint lint-sql test features hybrid sarima-wf sarima-publish shadow-dqt guardrails-assess smoke smoke-pipeline shadow-alerts shadow-bakeoff replay-cadence schedule-daily schedule-weekly
 
 help: ## list targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -74,6 +74,10 @@ shadow-alerts: ## evaluate shadow KPI alerts  [NOTIFY=1]
 shadow-bakeoff: ## 30-weekday SLO assessment on shadow history  [MIN_WEEKDAYS=30]
 	uv run python scripts/shadow_bakeoff_slo.py --data-dir $(DQT_DATA_DIR) \
 		$(if $(MIN_WEEKDAYS),--required-weekdays $(MIN_WEEKDAYS),)
+
+replay-cadence: ## holiday cadence backtest (Labor Day 2026 preset)  [PRESET=labor_day_2026]
+	uv run python scripts/replay_cadence_scenarios.py --data-dir $(DQT_DATA_DIR) \
+		$(if $(PRESET),--preset $(PRESET),)
 
 smoke: ## 14-day features pull → data/current
 	DQT_DATA_DIR=data/current START_DATE=$(SMOKE_START) \

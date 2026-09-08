@@ -330,6 +330,7 @@ class ShadowDQT:
         max_weekly_move: float = _DEFAULT_MAX_WEEKLY_MOVE,
         publish_mode: PublishMode = "block",
         dual_write_audit: bool = False,
+        append_history: bool = True,
     ) -> ShadowReport:
         """Score yesterday, propose tomorrow, audit + optional SF append."""
         run_at = get_dt_local()
@@ -421,23 +422,24 @@ class ShadowDQT:
         if published_fqn is not None:
             report = replace(report, published_fqn=published_fqn)
 
-        self.append_history(report)
+        if append_history:
+            self.append_history(report)
 
-        schedule_path = self.shadow_dir / _SCHEDULE_NAME
-        sched_row = publish_schedule_row(
-            valid_date=target,
-            alts=proposal.alts,
-            kill=kill,
-            proposal_source=source,
-        )
-        if schedule_path.exists():
-            sched = pl.concat(
-                [pl.read_parquet(schedule_path), sched_row],
-                how="diagonal_relaxed",
+            schedule_path = self.shadow_dir / _SCHEDULE_NAME
+            sched_row = publish_schedule_row(
+                valid_date=target,
+                alts=proposal.alts,
+                kill=kill,
+                proposal_source=source,
             )
-        else:
-            sched = sched_row
-        write_parquet_atomic(sched, schedule_path)
+            if schedule_path.exists():
+                sched = pl.concat(
+                    [pl.read_parquet(schedule_path), sched_row],
+                    how="diagonal_relaxed",
+                )
+            else:
+                sched = sched_row
+            write_parquet_atomic(sched, schedule_path)
 
         return report
 
