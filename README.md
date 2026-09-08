@@ -27,6 +27,11 @@ make sarima-publish    # kill-switch + next-day schedule
 make shadow-dqt        # daily shadow eval  [SKIP_SF=1]
 make guardrails-assess # empirical fire-rates  [QUICK=1]
 make smoke             # 14-day pull → data/current
+make smoke-pipeline    # synthetic fixtures → shadow (no SF)
+make shadow-alerts     # KPI alerts on shadow history  [NOTIFY=1]
+make shadow-bakeoff    # 30-weekday SLO assessment  [MIN_WEEKDAYS=30]
+make schedule-daily    # daily chain (features → shadow)
+make schedule-weekly   # weekly sarima + guardrails + bake-off
 make lint && make test
 ```
 

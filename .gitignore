@@ -1,6 +1,7 @@
 .env
 .ai/
 data*/
+.dev/bakeoff_smoke/
 .ipynb_*
 .amlignore*
 *.amltmp
@@ -12,3 +13,4 @@ notebooks/dqt/
 Logs/
 *.DS_Store
 documentation/etp-slider/.dev/
+*/.*/

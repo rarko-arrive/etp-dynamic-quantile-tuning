@@ -1,0 +1,49 @@
+# Azure ML / cron reference for DQT SARIMA_tail production schedule.
+#
+# Wire these commands into your orchestrator (Azure ML pipeline, Airflow, cron).
+# Secrets: inject SNOWFLAKE_* and DQT_DATA_DIR from Key Vault — never commit .env.
+
+name: dqt_sarima_tail
+description: Daily shadow publish + weekly SARIMA refresh
+
+variables:
+  dqt_data_dir: "${{ env.DQT_DATA_DIR }}"
+  timezone: America/Chicago
+
+jobs:
+  daily:
+    schedule: "0 6 * * 1-5"  # 06:00 CT weekdays
+    steps:
+      - name: features
+        command: make features
+      - name: hybrid
+        command: make hybrid
+      - name: sarima_append
+        command: make sarima-wf APPEND=1
+      - name: shadow_publish
+        command: make shadow-dqt PUBLISH_MODE=cap MAX_WEEKLY_MOVE=0.05
+        env:
+          DQT_PUBLISH_MODE: cap
+          DQT_MAX_WEEKLY_MOVE: "0.05"
+      - name: alerts
+        command: make shadow-alerts
+        on_failure: notify
+
+  weekly:
+    schedule: "0 18 * * 0"  # Sunday 18:00 CT
+    steps:
+      - name: sarima_refresh
+        command: make sarima-wf APPEND=1
+      - name: guardrails
+        command: make guardrails-assess QUICK=1
+      - name: bakeoff_slo
+        command: make shadow-bakeoff
+
+  prod_trial:
+    # Phase 2 only — requires eng sign-off + DQT_ALLOW_PROD=1
+    enabled: false
+    steps:
+      - name: prod_publish
+        command: make shadow-dqt PUBLISH_MODE=cap MAX_WEEKLY_MOVE=0.05 ALLOW_PROD=1 DUAL_AUDIT=1
+        env:
+          DQT_ALLOW_PROD: "1"

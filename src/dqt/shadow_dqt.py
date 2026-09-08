@@ -11,7 +11,11 @@ import polars as pl
 from loguru import logger
 
 from dqt import get_dt_local, repo_root, resolve_data_dir
-from dqt.model.global_dqt import _DEFAULT_MAX_WEEKLY_MOVE, DialProposal, GlobalDQT
+from dqt.model.global_dqt import (
+    _DEFAULT_MAX_WEEKLY_MOVE,
+    DialProposal,
+    GlobalDQT,
+)
 from dqt.panel import build_panel
 from dqt.sarima_dial import (
     MODEL_QCOL_SARIMA,
@@ -57,6 +61,10 @@ class ShadowReport:
     sarima_mae_pp: float | None = None
     naive_mae_pp: float | None = None
     lift_vs_naive_pct: float | None = None
+    full_proposal_alt_50: float | None = None
+    capped_proposal_alt_50: float | None = None
+    alt50_move_pp: float | None = None
+    dual_audit_path: str | None = None
 
     def to_frame(self) -> pl.DataFrame:
         row = asdict(self)
@@ -183,12 +191,13 @@ class ShadowDQT:
         cal_window_days: int = 28,
         max_weekly_move: float = _DEFAULT_MAX_WEEKLY_MOVE,
         publish_mode: PublishMode = "block",
-    ) -> DialProposal:
+    ) -> tuple[DialProposal, DialProposal | None]:
+        """Return ``(published_proposal, full_uncapped_or_none)``."""
         target = _parse_day(as_of)
         prior_day = prior_weekday(target)
         prior = self.dqt.as_of(prior_day)
         if source == "shipped_alt_50":
-            return self.dqt.gates(
+            prop = self.dqt.gates(
                 DialProposal(
                     valid_date=target,
                     alts=dict(prior.alts),
@@ -199,6 +208,7 @@ class ShadowDQT:
                 prior=prior,
                 max_weekly_move=max_weekly_move,
             )
+            return prop, None
         if publish_mode == "cap":
             raw = self.dqt.propose(
                 method="sarima_tail",
@@ -209,13 +219,14 @@ class ShadowDQT:
                 max_weekly_move=1.0,
             )
             capped = cap_global_alts(prior.alts, raw.alts, max_weekly_move)
-            return self.dqt.gates(
+            prop = self.dqt.gates(
                 replace(raw, alts=capped, gates={}),
                 prior=prior,
                 max_weekly_move=max_weekly_move,
             )
+            return prop, raw
         gate_limit = 1.0 if publish_mode == "full" else max_weekly_move
-        return self.dqt.propose(
+        prop = self.dqt.propose(
             method="sarima_tail",
             as_of=target,
             prior=prior,
@@ -223,6 +234,24 @@ class ShadowDQT:
             cal_window_days=cal_window_days,
             max_weekly_move=gate_limit,
         )
+        return prop, None
+
+    def _write_full_proposal_audit(self, proposal: DialProposal) -> Path:
+        out_dir = self.data_dir / "staging"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        path = (
+            out_dir
+            / f"dial_proposal_{proposal.valid_date.isoformat()}_{proposal.method}_full.parquet"
+        )
+        row = {
+            **proposal.to_dict(),
+            "method": proposal.method,
+            "generated_at": proposal.generated_at.isoformat(),
+            "audit_kind": "full_uncapped",
+        }
+        write_parquet_atomic(pl.DataFrame([row]), path)
+        logger.info("wrote dual-write full proposal audit → {}", path)
+        return path
 
     def append_history(self, report: ShadowReport) -> Path:
         self.shadow_dir.mkdir(parents=True, exist_ok=True)
@@ -278,6 +307,7 @@ class ShadowDQT:
         cal_window_days: int = 28,
         max_weekly_move: float = _DEFAULT_MAX_WEEKLY_MOVE,
         publish_mode: PublishMode = "block",
+        dual_write_audit: bool = False,
     ) -> ShadowReport:
         """Score yesterday, propose tomorrow, audit + optional SF append."""
         run_at = get_dt_local()
@@ -297,7 +327,7 @@ class ShadowDQT:
         source: ProposalSource = (
             "SARIMA_tail" if kill.passed else "shipped_alt_50"
         )
-        proposal = self.propose_global(
+        proposal, full_proposal = self.propose_global(
             target,
             source=source,
             min_n=min_n,
@@ -307,6 +337,19 @@ class ShadowDQT:
         )
         gates_passed = bool(proposal.passed)
         gates_reasons = list(proposal.gates.get("reasons") or [])
+
+        full_alt_50: float | None = None
+        capped_alt_50: float | None = proposal.alt_50
+        alt50_move_pp: float | None = None
+        dual_audit_path: str | None = None
+        if full_proposal is not None:
+            full_alt_50 = full_proposal.alt_50
+            prior = self.dqt.as_of(prior_weekday(target))
+            if full_alt_50 is not None and prior.alt_50 is not None:
+                alt50_move_pp = abs(float(full_alt_50) - float(prior.alt_50)) * 100.0
+            if dual_write_audit:
+                audit_path = self._write_full_proposal_audit(full_proposal)
+                dual_audit_path = str(audit_path)
 
         report = ShadowReport(
             run_at=run_at,
@@ -326,6 +369,10 @@ class ShadowDQT:
             sarima_mae_pp=kill.sarima_mae_pp,
             naive_mae_pp=kill.naive_mae_pp,
             lift_vs_naive_pct=kill.lift_vs_naive_pct,
+            full_proposal_alt_50=full_alt_50,
+            capped_proposal_alt_50=capped_alt_50,
+            alt50_move_pp=alt50_move_pp,
+            dual_audit_path=dual_audit_path,
         )
 
         published_fqn = self.publish_shadow(

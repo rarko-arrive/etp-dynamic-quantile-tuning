@@ -24,7 +24,7 @@ import polars as pl
 from dotenv import find_dotenv, load_dotenv
 from loguru import logger
 
-from dqt import repo_root, resolve_data_dir
+from dqt import display_path, repo_root, resolve_data_dir
 from dqt.hybrid import HybridConfig
 from dqt.panel import EQUIPMENT_MAP, GRID, build_panel
 from dqt.sarima_dial import (
@@ -58,8 +58,8 @@ def _seed_dial_from_frozen(root: Path, dial_path: Path) -> pl.DataFrame | None:
     shutil.copy2(frozen, dial_path)
     logger.info(
         "seeded {} from frozen {}",
-        dial_path.relative_to(root),
-        frozen.relative_to(root),
+        display_path(dial_path, root=root),
+        display_path(frozen, root=root),
     )
     return pl.read_parquet(dial_path)
 
@@ -279,7 +279,7 @@ def main() -> int:
         prior = pl.read_parquet(dial_path)
         logger.info(
             "loaded prior dial {} ({} rows)",
-            dial_path.relative_to(root),
+            display_path(dial_path, root=root),
             prior.height,
         )
     elif args.append or args.seed_from_frozen or data_path.name == "current":
@@ -293,7 +293,7 @@ def main() -> int:
     if not rebuild_dial:
         logger.info(
             "{} exists — loading (FORCE=1 full rebuild, APPEND=1 extend)",
-            dial_path.relative_to(root),
+            display_path(dial_path, root=root),
         )
         dial = pl.read_parquet(dial_path)
     else:
@@ -313,7 +313,7 @@ def main() -> int:
             prior_dial=None if args.force else prior,
         )
         write_parquet_atomic(dial, dial_path)
-        logger.info("wrote {} ({} rows)", dial_path.relative_to(root), dial.height)
+        logger.info("wrote {} ({} rows)", display_path(dial_path, root=root), dial.height)
 
     # Settlement coverage KPI (lag proxy on ex-post panel).
     panel_for_cov = build_panel(root, data_dir=data_dir)
@@ -321,7 +321,7 @@ def main() -> int:
         panel_for_cov, dial, settlement_lag_days=3
     )
     write_parquet_atomic(cov, coverage_path)
-    logger.info("wrote settlement coverage → {}", coverage_path.relative_to(root))
+    logger.info("wrote settlement coverage → {}", display_path(coverage_path, root=root))
 
     rolling = rolling_origin_dial_scorecard(dial)
     write_parquet_atomic(rolling, rolling_path)
@@ -366,7 +366,7 @@ def main() -> int:
     # --- sarima_pp quantiles ---
     rebuild_pp = args.force or args.append or not pp_path.exists()
     if pp_path.exists() and not rebuild_pp:
-        logger.info("{} exists — loading (--force/--append to rebuild)", pp_path.relative_to(root))
+        logger.info("{} exists — loading (--force/--append to rebuild)", display_path(pp_path, root=root))
         sarima_pp = pl.read_parquet(pp_path)
     else:
         panel = build_panel(root, data_dir=data_dir)
@@ -391,7 +391,7 @@ def main() -> int:
         write_parquet_atomic(sarima_pp, pp_path)
         logger.info(
             "wrote {} ({} rows, {:.0f} MB)",
-            pp_path.relative_to(root),
+            display_path(pp_path, root=root),
             sarima_pp.height,
             pp_path.stat().st_size / 1e6,
         )
@@ -407,7 +407,7 @@ def main() -> int:
     elif blend_path.exists() and not rebuild_blend:
         logger.info(
             "{} exists — loading (--force/--append to rebuild)",
-            blend_path.relative_to(root),
+            display_path(blend_path, root=root),
         )
     else:
         panel_b = build_panel(root, data_dir=data_dir)
@@ -432,7 +432,7 @@ def main() -> int:
         write_parquet_atomic(sarima_blend, blend_path)
         logger.info(
             "wrote {} ({} rows, {:.0f} MB)",
-            blend_path.relative_to(root),
+            display_path(blend_path, root=root),
             sarima_blend.height,
             blend_path.stat().st_size / 1e6,
         )
@@ -452,7 +452,7 @@ def main() -> int:
         write_parquet_atomic(sarima_hybrid, hybrid_stack_path)
         logger.info(
             "wrote {} ({} rows)",
-            hybrid_stack_path.relative_to(root),
+            display_path(hybrid_stack_path, root=root),
             sarima_hybrid.height,
         )
 
@@ -467,7 +467,7 @@ def main() -> int:
     elif tail_path.exists() and not rebuild_tail:
         logger.info(
             "{} exists — loading (--force/--append to rebuild)",
-            tail_path.relative_to(root),
+            display_path(tail_path, root=root),
         )
     else:
         panel_t = build_panel(root, data_dir=data_dir)
@@ -483,7 +483,7 @@ def main() -> int:
         write_parquet_atomic(sarima_tail, tail_path)
         logger.info(
             "wrote {} ({} rows)",
-            tail_path.relative_to(root),
+            display_path(tail_path, root=root),
             sarima_tail.height,
         )
 
@@ -612,7 +612,7 @@ def main() -> int:
     global_card = scored["global"].with_columns(pl.lit("global").alias("slice"))
     level_card = scored["quantile_level"].with_columns(pl.lit("global").alias("slice"))
     write_parquet_atomic(level_card, level_card_path)
-    logger.info("wrote quantile-level scorecard → {}", level_card_path.relative_to(root))
+    logger.info("wrote quantile-level scorecard → {}", display_path(level_card_path, root=root))
 
     kept_episodes = {
         name: tmpl
@@ -639,13 +639,13 @@ def main() -> int:
     )
     episodes = score_market_episodes(episode_frame, model_qcol=kept_episodes)
     write_parquet_atomic(episodes, episode_path)
-    logger.info("wrote episode replay → {}\n{}", episode_path.relative_to(root), episodes)
+    logger.info("wrote episode replay → {}\n{}", display_path(episode_path, root=root), episodes)
 
     cell = scored["cell_gap"]
     if cell is not None and cell.height:
         cell_path = results_dir / "sarima_walkforward_cell_gap.parquet"
         write_parquet_atomic(cell, cell_path)
-        logger.info("wrote {} ({} cells)", cell_path.relative_to(root), cell.height)
+        logger.info("wrote {} ({} cells)", display_path(cell_path, root=root), cell.height)
         mean_abs = float(cell["hybrid_gap_pp"].abs().mean())
         worst = float(cell["hybrid_gap_pp"].abs().max())
         logger.info(
@@ -655,7 +655,7 @@ def main() -> int:
         )
 
     write_parquet_atomic(global_card, scorecard_path)
-    logger.info("wrote {}\n{}", scorecard_path.relative_to(root), global_card)
+    logger.info("wrote {}\n{}", display_path(scorecard_path, root=root), global_card)
     return 0
 
 

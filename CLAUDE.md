@@ -7,6 +7,8 @@ DQT quantile pipeline only. Sibling repos: `../etp-lake`, `../etp-explanations`.
 ```bash
 make install && make lint && make test
 make features && make hybrid && make sarima-wf
+DQT_DATA_DIR=data make shadow-dqt PUBLISH_MODE=cap MAX_WEEKLY_MOVE=0.05
+make shadow-bakeoff && make smoke-pipeline
 DQT_DATA_DIR=data make guardrails-assess QUICK=1
 ```
 

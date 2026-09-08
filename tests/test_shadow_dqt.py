@@ -191,9 +191,12 @@ class TestShadowDQT:
 
     def test_propose_sarima_tail(self, shadow_layer: ShadowDQT) -> None:
         target = next_weekday(date(2025, 6, 12))
-        prop = shadow_layer.propose_global(target, source="SARIMA_tail", min_n=30)
+        prop, full = shadow_layer.propose_global(
+            target, source="SARIMA_tail", min_n=30, publish_mode="cap"
+        )
         assert prop.method == "sarima_tail"
         assert prop.alt_50 is not None
+        assert full is not None
 
     def test_run_daily_audit_no_snowflake(
         self, shadow_layer: ShadowDQT, monkeypatch: pytest.MonkeyPatch
@@ -216,6 +219,21 @@ class TestShadowDQT:
         assert report.kill_switch_passed is True
         assert report.proposal_source == "SARIMA_tail"
         assert shadow_layer.history_path.exists()
+
+    def test_run_daily_dual_audit_writes_full_proposal(
+        self, shadow_layer: ShadowDQT
+    ) -> None:
+        report = shadow_layer.run_daily(
+            as_of=date(2025, 6, 13),
+            scored_date=date(2025, 6, 6),
+            write_snowflake=False,
+            min_n=30,
+            publish_mode="cap",
+            dual_write_audit=True,
+        )
+        assert report.dual_audit_path is not None
+        assert report.full_proposal_alt_50 is not None
+        assert report.capped_proposal_alt_50 is not None
 
     def test_run_daily_kill_switch_fallback(self, shadow_layer: ShadowDQT) -> None:
         dial = pl.read_parquet(shadow_layer.dqt.sarima_wf_path)

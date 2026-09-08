@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Load SSH key for private dependencies
+        if: ${{ secrets.ARRIVE_DS_DEPLOY_KEY != '' }}
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.ARRIVE_DS_DEPLOY_KEY }}
+
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      - name: Lint Python
+        run: uv run ruff check src/ scripts/
+
+      - name: Test
+        run: make test
+
+      - name: Pipeline smoke (no Snowflake)
+        run: make smoke-pipeline
