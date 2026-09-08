@@ -18,7 +18,7 @@ from dqt.sarima_publish import (
     resolve_target_hat,
 )
 from dqt.score.constants import COST_COL, ID_COL
-from dqt.shadow_dqt import ShadowDQT
+from dqt.shadow_dqt import ShadowDQT, parse_quantile_attainment_json
 
 
 def _alts(center: float = 0.50) -> dict[str, float]:
@@ -188,6 +188,63 @@ class TestShadowDQT:
         assert out["shipped_att50"] is not None
         assert out["tail_att50"] is not None
         assert out["tail_ece_pp"] is not None
+        assert out["shipped_crps_usd"] is not None
+        assert out["tail_crps_usd"] is not None
+        assert out["shipped_ece_pp"] is not None
+        assert out["crps_lift_usd"] == pytest.approx(
+            out["shipped_crps_usd"] - out["tail_crps_usd"]
+        )
+        assert out["ece_lift_pp"] == pytest.approx(
+            out["shipped_ece_pp"] - out["tail_ece_pp"]
+        )
+        assert out["hybrid_att50"] is None
+        assert out["quantile_attainment_json"] is not None
+
+        level = parse_quantile_attainment_json(out["quantile_attainment_json"])
+        assert level.height == len(GRID) * 2
+        assert set(level["model"].unique().to_list()) == {"DQT/ETP", "SARIMA_tail"}
+        assert level.filter(pl.col("quantile") == 0.5).height == 2
+
+    def test_score_day_includes_hybrid_when_columns_present(
+        self, shadow_layer: ShadowDQT
+    ) -> None:
+        scored = date(2025, 6, 6)
+        panel = pl.read_parquet(shadow_layer.panel_path)
+        hybrid_exprs = [
+            pl.col(f"p{int(round(float(a) * 100)):02d}").alias(
+                f"hybrid_{int(round(float(a) * 100)):02d}"
+            )
+            for a in GRID
+        ]
+        panel.with_columns(hybrid_exprs).write_parquet(shadow_layer.panel_path)
+
+        out = shadow_layer.score_day(scored)
+        assert out["hybrid_att50"] is not None
+        assert out["hybrid_crps_usd"] is not None
+        assert out["hybrid_ece_pp"] is not None
+        level = parse_quantile_attainment_json(out["quantile_attainment_json"])
+        assert "Hybrid" in level["model"].unique().to_list()
+
+    def test_run_daily_persists_distribution_metrics(
+        self, shadow_layer: ShadowDQT, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from dqt.model import global_dqt as mod
+
+        monkeypatch.setattr(mod, "create_table", lambda *a, **k: None)
+
+        shadow_layer.run_daily(
+            as_of=date(2025, 6, 13),
+            scored_date=date(2025, 6, 6),
+            write_snowflake=False,
+            min_n=30,
+        )
+        hist = pl.read_parquet(shadow_layer.history_path)
+        row = hist.row(-1, named=True)
+        assert row["shipped_crps_usd"] is not None
+        assert row["tail_crps_usd"] is not None
+        assert row["quantile_attainment_json"] is not None
+        level = parse_quantile_attainment_json(row["quantile_attainment_json"])
+        assert level.height >= len(GRID) * 2
 
     def test_propose_sarima_tail(self, shadow_layer: ShadowDQT) -> None:
         target = next_weekday(date(2025, 6, 12))

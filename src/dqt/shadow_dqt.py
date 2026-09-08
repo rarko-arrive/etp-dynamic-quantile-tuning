@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import math
 from dataclasses import asdict, dataclass, field, replace
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -16,7 +18,7 @@ from dqt.model.global_dqt import (
     DialProposal,
     GlobalDQT,
 )
-from dqt.panel import build_panel
+from dqt.panel import GRID, build_panel
 from dqt.sarima_dial import (
     MODEL_QCOL_SARIMA,
     score_sarima_walkforward,
@@ -65,6 +67,15 @@ class ShadowReport:
     capped_proposal_alt_50: float | None = None
     alt50_move_pp: float | None = None
     dual_audit_path: str | None = None
+    shipped_crps_usd: float | None = None
+    tail_crps_usd: float | None = None
+    shipped_ece_pp: float | None = None
+    crps_lift_usd: float | None = None
+    ece_lift_pp: float | None = None
+    hybrid_att50: float | None = None
+    hybrid_crps_usd: float | None = None
+    hybrid_ece_pp: float | None = None
+    quantile_attainment_json: str | None = None
 
     def to_frame(self) -> pl.DataFrame:
         row = asdict(self)
@@ -73,6 +84,82 @@ class ShadowReport:
         row["target_date"] = self.target_date
         row["gates_reasons"] = self.gates_reasons or None
         return pl.DataFrame([row])
+
+
+def parse_quantile_attainment_json(payload: str | None) -> pl.DataFrame:
+    """Decode ``quantile_attainment_json`` from shadow history into a long table."""
+    if not payload:
+        return pl.DataFrame(
+            schema={
+                "model": pl.String,
+                "quantile": pl.Float64,
+                "att_pct": pl.Float64,
+                "gap_pp": pl.Float64,
+            }
+        )
+    return pl.DataFrame(json.loads(payload))
+
+
+def _empty_score_dict(scored: date) -> dict[str, Any]:
+    return {
+        "scored_date": scored,
+        "n_loads": 0,
+        "shipped_att50": None,
+        "tail_att50": None,
+        "tail_ece_pp": None,
+        "tail_pinball_t_usd": None,
+        "shipped_crps_usd": None,
+        "tail_crps_usd": None,
+        "shipped_ece_pp": None,
+        "crps_lift_usd": None,
+        "ece_lift_pp": None,
+        "hybrid_att50": None,
+        "hybrid_crps_usd": None,
+        "hybrid_ece_pp": None,
+        "quantile_attainment_json": None,
+    }
+
+
+def _models_for_shadow_score(frame: pl.DataFrame) -> dict[str, str]:
+    """Models to score on a shadow day (Hybrid included when columns exist)."""
+    models = {
+        "DQT/ETP": MODEL_QCOL_SARIMA["DQT/ETP"],
+        "SARIMA_tail": MODEL_QCOL_SARIMA["SARIMA_tail"],
+    }
+    hybrid_tmpl = MODEL_QCOL_SARIMA["Hybrid"]
+    hybrid_cols = [hybrid_tmpl.format(q=int(round(float(a) * 100))) for a in GRID]
+    if all(c in frame.columns for c in hybrid_cols):
+        models["Hybrid"] = hybrid_tmpl
+    return models
+
+
+def _global_model_metric(
+    global_card: pl.DataFrame, model: str, col: str
+) -> float | None:
+    row = global_card.filter(pl.col("model") == model)
+    if row.is_empty():
+        return None
+    val = row[col][0]
+    if val is None:
+        return None
+    out = float(val)
+    return None if not math.isfinite(out) else out
+
+
+def _quantile_level_json(level_card: pl.DataFrame) -> str:
+    payload = level_card.select("model", "quantile", "att_pct", "gap_pp").to_dicts()
+    return json.dumps(payload, separators=(",", ":"))
+
+
+def _lift_metric(
+    baseline: float | None, challenger: float | None, *, lower_is_better: bool
+) -> float | None:
+    """Positive lift means challenger beat baseline (lower CRPS/ECE)."""
+    if baseline is None or challenger is None:
+        return None
+    if lower_is_better:
+        return baseline - challenger
+    return challenger - baseline
 
 
 class ShadowDQT:
@@ -144,14 +231,7 @@ class ShadowDQT:
                     panel_min,
                     panel_max,
                 )
-            return {
-                "scored_date": scored,
-                "n_loads": 0,
-                "shipped_att50": None,
-                "tail_att50": None,
-                "tail_ece_pp": None,
-                "tail_pinball_t_usd": None,
-            }
+            return _empty_score_dict(scored)
 
         tail = self._load_tail()
         frame = day_panel.join(tail, on="loadnumber", how="inner")
@@ -161,19 +241,20 @@ class ShadowDQT:
                 f"run `make sarima-wf APPEND=1`"
             )
 
-        models = {
-            "DQT/ETP": MODEL_QCOL_SARIMA["DQT/ETP"],
-            "SARIMA_tail": MODEL_QCOL_SARIMA["SARIMA_tail"],
-        }
+        models = _models_for_shadow_score(frame)
         cards = score_sarima_walkforward(frame, model_qcol=models)
         global_card = cards["global"]
-        shipped_row = global_card.filter(pl.col("model") == "DQT/ETP")
-        tail_row = global_card.filter(pl.col("model") == "SARIMA_tail")
-        shipped_att50 = (
-            float(shipped_row["att50"][0]) if not shipped_row.is_empty() else None
-        )
-        tail_att50 = float(tail_row["att50"][0]) if not tail_row.is_empty() else None
-        tail_ece = float(tail_row["ece_pp"][0]) if not tail_row.is_empty() else None
+        level_card = cards["quantile_level"]
+
+        shipped_att50 = _global_model_metric(global_card, "DQT/ETP", "att50")
+        tail_att50 = _global_model_metric(global_card, "SARIMA_tail", "att50")
+        shipped_crps = _global_model_metric(global_card, "DQT/ETP", "crps_usd")
+        tail_crps = _global_model_metric(global_card, "SARIMA_tail", "crps_usd")
+        shipped_ece = _global_model_metric(global_card, "DQT/ETP", "ece_pp")
+        tail_ece = _global_model_metric(global_card, "SARIMA_tail", "ece_pp")
+        hybrid_att50 = _global_model_metric(global_card, "Hybrid", "att50")
+        hybrid_crps = _global_model_metric(global_card, "Hybrid", "crps_usd")
+        hybrid_ece = _global_model_metric(global_card, "Hybrid", "ece_pp")
         pinball = business_pinball_for_models(
             frame, {"SARIMA_tail": MODEL_QCOL_SARIMA["SARIMA_tail"]}
         ).get("SARIMA_tail")
@@ -185,6 +266,19 @@ class ShadowDQT:
             "tail_att50": tail_att50,
             "tail_ece_pp": tail_ece,
             "tail_pinball_t_usd": pinball,
+            "shipped_crps_usd": shipped_crps,
+            "tail_crps_usd": tail_crps,
+            "shipped_ece_pp": shipped_ece,
+            "crps_lift_usd": _lift_metric(
+                shipped_crps, tail_crps, lower_is_better=True
+            ),
+            "ece_lift_pp": _lift_metric(
+                shipped_ece, tail_ece, lower_is_better=True
+            ),
+            "hybrid_att50": hybrid_att50,
+            "hybrid_crps_usd": hybrid_crps,
+            "hybrid_ece_pp": hybrid_ece,
+            "quantile_attainment_json": _quantile_level_json(level_card),
         }
 
     def evaluate_kill_switch(
@@ -384,6 +478,15 @@ class ShadowDQT:
             tail_att50=score["tail_att50"],
             tail_ece_pp=score["tail_ece_pp"],
             tail_pinball_t_usd=score["tail_pinball_t_usd"],
+            shipped_crps_usd=score["shipped_crps_usd"],
+            tail_crps_usd=score["tail_crps_usd"],
+            shipped_ece_pp=score["shipped_ece_pp"],
+            crps_lift_usd=score["crps_lift_usd"],
+            ece_lift_pp=score["ece_lift_pp"],
+            hybrid_att50=score["hybrid_att50"],
+            hybrid_crps_usd=score["hybrid_crps_usd"],
+            hybrid_ece_pp=score["hybrid_ece_pp"],
+            quantile_attainment_json=score["quantile_attainment_json"],
             kill_switch_passed=kill.passed,
             kill_switch_reason=kill.reason,
             proposal_source=source,
@@ -480,4 +583,5 @@ __all__ = [
     "PublishMode",
     "ShadowDQT",
     "ShadowReport",
+    "parse_quantile_attainment_json",
 ]
