@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+from datetime import date
+from pathlib import Path
+
 import numpy as np
+import polars as pl
 import pytest
 
 from dqt import resolve_data_dir
@@ -15,6 +19,35 @@ from dqt.dial_miss.decomposition import (
     verify_data_gates,
 )
 from dqt.sarima_dial import materialize_pp50_batch
+
+
+def _has_repo_data_layer() -> bool:
+    data_dir = resolve_data_dir()
+    return (data_dir / "sarima_dial_walkforward.parquet").is_file()
+
+
+@pytest.fixture
+def dial_miss_layer(tmp_path: Path) -> Path:
+    dates = [date(2025, 6, 2), date(2025, 6, 3)]
+    pl.DataFrame(
+        {
+            "booked_date": dates,
+            "y_hat_sarima_cal": [0.52, 0.51],
+            "y_hat_sarima": [0.52, 0.51],
+            "y_hat_naive": [0.50, 0.50],
+            "y": [0.50, 0.49],
+            "in_eval": [True, True],
+            "n_loads": [100, 110],
+        }
+    ).write_parquet(tmp_path / "sarima_dial_walkforward.parquet")
+    pl.DataFrame(
+        {
+            "valid_date": dates,
+            "snowflakeupdatedon": dates,
+            "alt_50": [0.48, 0.47],
+        }
+    ).write_parquet(tmp_path / "dqt_alt_percentiles.parquet")
+    return tmp_path
 
 
 def test_dial_miss_pp_hand_check():
@@ -73,14 +106,15 @@ def test_regression_shares_sum_on_synthetic():
     assert _r2(y, y_hat) == pytest.approx(1.0)
 
 
+@pytest.mark.skipif(not _has_repo_data_layer(), reason="local data layer required")
 def test_verify_data_gates_passes_on_repo_data():
     gates = verify_data_gates()
-    assert "checks" in gates
+    assert gates["passed"] is True
     assert gates["checks"]
 
 
-def test_build_daily_dial_miss_has_dial_miss_pp():
-    daily, summary = build_daily_dial_miss(data_dir=resolve_data_dir())
+def test_build_daily_dial_miss_has_dial_miss_pp(dial_miss_layer: Path):
+    daily, summary = build_daily_dial_miss(data_dir=dial_miss_layer)
     assert "dial_miss_pp" in daily.columns
     assert summary.get("mae_dial_miss_pp") is not None
 
