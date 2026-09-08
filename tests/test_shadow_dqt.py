@@ -220,6 +220,25 @@ class TestShadowDQT:
         assert report.proposal_source == "SARIMA_tail"
         assert shadow_layer.history_path.exists()
 
+    def test_run_daily_skips_sf_when_no_loads(
+        self, shadow_layer: ShadowDQT, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from dqt.model import global_dqt as mod
+
+        def fail_sf(*args, **kwargs):
+            raise AssertionError("Snowflake should not be called when n_loads=0")
+
+        monkeypatch.setattr(mod, "create_table", fail_sf)
+
+        report = shadow_layer.run_daily(
+            as_of=date(2025, 6, 13),
+            scored_date=date(2099, 1, 2),
+            write_snowflake=True,
+            min_n=30,
+        )
+        assert report.n_loads == 0
+        assert report.published_fqn is None
+
     def test_run_daily_dual_audit_writes_full_proposal(
         self, shadow_layer: ShadowDQT
     ) -> None:

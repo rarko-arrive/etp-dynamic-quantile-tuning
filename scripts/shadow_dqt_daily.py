@@ -110,12 +110,14 @@ def main() -> int:
 
     data_dir = resolve_data_dir(args.data_dir)
     if args.refresh:
-        logger.info("refreshing sarima walk-forward (APPEND=1)")
+        env = {**dict(os.environ), "DQT_DATA_DIR": str(data_dir)}
+        logger.info("refreshing hybrid + sarima walk-forward")
+        subprocess.run(["make", "hybrid", "FORCE=1"], cwd=REPO, check=True, env=env)
         subprocess.run(
             ["make", "sarima-wf", "APPEND=1"],
             cwd=REPO,
             check=True,
-            env={**dict(__import__("os").environ), "DQT_DATA_DIR": str(data_dir)},
+            env=env,
         )
 
     shadow = ShadowDQT(data_dir, settlement_lag_days=args.settlement_lag)
@@ -142,6 +144,13 @@ def main() -> int:
         )
         if args.alert_notify:
             send_alerts(alerts, latest=report.to_frame().row(0, named=True))
+        for alert in alerts:
+            logger.warning(
+                "alert [{}] {}: {}",
+                alert.severity.value,
+                alert.code,
+                alert.message,
+            )
         sev = worst_severity(alerts)
         if sev in (AlertSeverity.P0, AlertSeverity.P1):
             exit_code = max(exit_code, 1)

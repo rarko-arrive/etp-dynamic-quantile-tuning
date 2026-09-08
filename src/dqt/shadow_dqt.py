@@ -125,6 +125,25 @@ class ShadowDQT:
         panel = self._load_panel()
         day_panel = panel.filter(pl.col("booked_date") == scored)
         if day_panel.is_empty():
+            bd = panel.get_column("booked_date")
+            panel_min, panel_max = bd.min(), bd.max()
+            if scored > panel_max:
+                logger.warning(
+                    "scored day {} is after panel max {} (panel {}..{}) — "
+                    "run `make features FORCE=1` then `make hybrid FORCE=1`",
+                    scored.isoformat(),
+                    panel_max,
+                    panel_min,
+                    panel_max,
+                )
+            else:
+                logger.warning(
+                    "scored day {} has n_loads=0 (panel {}..{}) — "
+                    "check cohort filters or rebuild with `make hybrid FORCE=1`",
+                    scored.isoformat(),
+                    panel_min,
+                    panel_max,
+                )
             return {
                 "scored_date": scored,
                 "n_loads": 0,
@@ -274,10 +293,13 @@ class ShadowDQT:
         allow_prod: bool = False,
         kill_switch_passed: bool = True,
         gates_passed: bool = True,
+        score_passed: bool = True,
     ) -> str | None:
         """Staging parquet always; Snowflake only when kill-switch + gates pass."""
         self.dqt._write_parquet_audit(proposal)
 
+        if not score_passed:
+            return None
         if not kill_switch_passed:
             return None
         if not gates_passed:
@@ -320,6 +342,7 @@ class ShadowDQT:
         )
 
         score = self.score_day(scored)
+        score_passed = int(score["n_loads"]) > 0
         kill = self.evaluate_kill_switch(
             target=target,
             min_lift_vs_naive_pct=min_lift_vs_naive_pct,
@@ -382,8 +405,15 @@ class ShadowDQT:
             allow_prod=allow_prod,
             kill_switch_passed=kill.passed,
             gates_passed=gates_passed,
+            score_passed=score_passed,
         )
-        if not kill.passed:
+        if not score_passed:
+            logger.warning(
+                "scored day {} has no loads — skipping Snowflake "
+                "(run `make hybrid FORCE=1` and `make sarima-wf APPEND=1`)",
+                scored,
+            )
+        elif not kill.passed:
             logger.warning("kill-switch tripped — skipping Snowflake ({})", kill.reason)
         elif not gates_passed:
             logger.warning("gates failed — skipping Snowflake ({})", gates_reasons)
@@ -412,9 +442,20 @@ class ShadowDQT:
         return report
 
     def _load_panel(self) -> pl.DataFrame:
-        if self.panel_path.exists():
-            return pl.read_parquet(self.panel_path)
-        return build_panel(repo_root(), data_dir=self.data_dir)
+        feat = self.data_dir / "features.parquet"
+        panel_path = self.panel_path
+        stale = (
+            feat.exists()
+            and panel_path.exists()
+            and feat.stat().st_mtime > panel_path.stat().st_mtime
+        )
+        if not panel_path.exists() or stale:
+            if stale:
+                logger.info(
+                    "features.parquet newer than panel_loads — rebuilding panel"
+                )
+            return build_panel(repo_root(), force=True, data_dir=self.data_dir)
+        return pl.read_parquet(panel_path)
 
     def _load_tail(self) -> pl.DataFrame:
         if not self.tail_path.exists():

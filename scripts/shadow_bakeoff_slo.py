@@ -48,6 +48,16 @@ def main() -> int:
         status = "PASS" if slo.passed else "FAIL"
         logger.info("[{}] {} — {}", status, slo.name, slo.detail)
 
+    if report.n_weekdays < required:
+        logger.warning(
+            "insufficient shadow history ({}/{} weekdays) — run daily "
+            "`make shadow-dqt PUBLISH_MODE=cap` until {} weekdays accumulate",
+            report.n_weekdays,
+            required,
+            required,
+        )
+        return 0
+
     if not report.passed:
         logger.warning(
             "bake-off SLOs not met ({}/{} weekdays)",
